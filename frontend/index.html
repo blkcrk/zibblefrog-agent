@@ -68,6 +68,17 @@
     .agent-taxonomy { border-left: 3px solid #f59e0b; }
     .agent-seo { border-left: 3px solid #8b5cf6; }
     .agent-kpi { border-left: 3px solid #10b981; }
+  
+    /* Diff viewer */
+    .diff-section { margin-top: 32px; }
+    .diff-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 16px; }
+    .diff-table th { background: #111; color: #00F5FF; padding: 10px 12px; text-align: left; }
+    .diff-table td { padding: 8px 12px; border-bottom: 1px solid #1a1a2e; vertical-align: top; }
+    .diff-table tr:hover td { background: #0d1117; }
+    .old-val { color: #ef4444; text-decoration: line-through; }
+    .new-val { color: #00ff88; }
+    .diff-actions { display: flex; gap: 12px; margin-top: 16px; }
+
   </style>
 </head>
 <body>
@@ -96,6 +107,13 @@
       <button id="analyze-btn" class="btn" style="display:none" onclick="analyzeCSV()">🤖 Analyze Inventory</button>
       <button id="bc-btn" class="btn" style="background:#6366f1" onclick="analyzeBigCommerce()">🛒 Fetch from BigCommerce</button>
       <button id="download-btn" class="btn btn-outline" style="display:none">⬇ Download Results</button>
+      <button id="preview-btn" class="btn" style="display:none;background:#f59e0b;color:#000" onclick="previewChanges()">🔍 Preview Changes</button>
+    </div>
+    <div class="diff-actions">
+      <button id="publish-btn" class="btn" style="display:none;background:#10b981" onclick="publishChanges()">🚀 Publish to BigCommerce</button>
+    </div>
+    <div id="diff-section" class="diff-section" style="display:none"></div>
+    <div style="display:none">
     </div>
 
     <!-- Report -->
@@ -247,6 +265,11 @@
               resultCSV = data.csv;
               setProgress('csv-progress-wrap', 100);
               setStatus('csv-status', '✅ Analysis complete!');
+              // Parse results for diff
+              const lines2 = resultCSV.trim().split('\n');
+              const hdrs = lines2[0].split(',');
+              analyzedResults = lines2.slice(1).map(l => Object.fromEntries(l.split(',').map((v,i) => [hdrs[i], v])));
+              document.getElementById('preview-btn').style.display = 'inline-block';
               // Collapse all dialogue entries and show summary
               document.querySelectorAll('.dialogue-entry').forEach(e => e.classList.add('collapsed'));
               const summaryDiv = document.createElement('div');
@@ -413,6 +436,10 @@
               resultCSV = data.content.csv;
               setProgress('csv-progress-wrap', 100);
               setStatus('csv-status', '✅ BigCommerce analysis complete!');
+              const lines3 = resultCSV.trim().split('\n');
+              const hdrs3 = lines3[0].split(',');
+              analyzedResults = lines3.slice(1).map(l => Object.fromEntries(l.split(',').map((v,i) => [hdrs3[i], v])));
+              document.getElementById('preview-btn').style.display = 'inline-block';
               document.getElementById('download-btn').style.display = 'inline-block';
               document.getElementById('download-btn').onclick = () => {
                 const blob = new Blob([resultCSV], { type: 'text/csv' });
@@ -428,6 +455,76 @@
         setStatus('csv-status', '❌ Error: ' + err.message);
       }
       btn.disabled = false;
+    }
+
+    
+    let analyzedResults = [];
+
+    async function previewChanges() {
+      if (!analyzedResults.length) return;
+      const btn = document.getElementById('preview-btn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Loading diff...';
+
+      try {
+        const res = await fetch(`${API}/preview-changes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(analyzedResults)
+        });
+        const data = await res.json();
+        renderDiff(data.diffs);
+        document.getElementById('publish-btn').style.display = 'inline-block';
+      } catch(e) {
+        alert('Error loading diff: ' + e.message);
+      }
+      btn.disabled = false;
+      btn.textContent = '🔍 Preview Changes';
+    }
+
+    function renderDiff(diffs) {
+      const section = document.getElementById('diff-section');
+      section.style.display = 'block';
+      if (!diffs.length) {
+        section.innerHTML = '<p style="color:#666">No changes detected.</p>';
+        return;
+      }
+      const rows = diffs.map(d => `
+        <tr>
+          <td style="color:#aaa">${d.product_id}</td>
+          <td style="color:#888">${d.field}</td>
+          <td><span class="old-val">${d.old_value || '(empty)'}</span></td>
+          <td><span class="new-val">${d.new_value}</span></td>
+        </tr>`).join('');
+      section.innerHTML = `
+        <h2 style="border:none;padding:0;margin-bottom:16px">📊 Catalog Diff — ${diffs.length} changes</h2>
+        <table class="diff-table">
+          <thead><tr>
+            <th>Product ID</th><th>Field</th><th>Current Value</th><th>New Value</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    async function publishChanges() {
+      if (!confirm('Publish all changes to BigCommerce?')) return;
+      const btn = document.getElementById('publish-btn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Publishing...';
+      try {
+        const res = await fetch(`${API}/publish-changes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(analyzedResults)
+        });
+        const data = await res.json();
+        btn.textContent = `✅ Published ${data.published} products`;
+        if (data.errors.length) {
+          console.warn('Publish errors:', data.errors);
+        }
+      } catch(e) {
+        btn.textContent = '❌ Publish failed';
+      }
     }
 
     document.getElementById('goal').addEventListener('keydown', e => { if (e.key === 'Enter') runAgent(); });
