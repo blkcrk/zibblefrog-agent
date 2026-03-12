@@ -1,7 +1,4 @@
 fastapi
 uvicorn
-langchain
-langgraph
-langchain-community
-ollama
+groq
 httpx
