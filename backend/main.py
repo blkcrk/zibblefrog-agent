@@ -31,9 +31,11 @@ def run(goal: str, model: str = "llama-3.3-70b-versatile"):
 def stream(goal: str, model: str = "llama-3.3-70b-versatile"):
     def event_stream():
         yield f"data: {json.dumps({'agent': 'planner', 'status': 'thinking', 'content': ''})}\n\n"
-        planner_prompt = f\"\"\"You are a planner. Break the following goal into a numbered list of clear, simple steps.
-Goal: {goal}
-Respond with only the numbered steps, nothing else.\"\"\"
+        planner_prompt = (
+            "You are a planner. Break the following goal into a numbered list of clear, simple steps.\n"
+            f"Goal: {goal}\n"
+            "Respond with only the numbered steps, nothing else."
+        )
         planner_stream = client.chat.completions.create(
             model=model, messages=[{"role": "user", "content": planner_prompt}], stream=True
         )
