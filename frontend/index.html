@@ -4,43 +4,78 @@
   <meta charset="UTF-8">
   <title>Zibblefrog Agent Demo</title>
   <style>
-    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
-    input { width: 70%; padding: 8px; font-size: 1rem; }
-    button { padding: 8px 16px; font-size: 1rem; cursor: pointer; }
+    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #0a0a0f; color: #f0f0f0; }
+    h1 { color: #00F5FF; }
+    input { width: 70%; padding: 8px; font-size: 1rem; background: #111; border: 1px solid #333; color: #fff; border-radius: 4px; }
+    button { padding: 8px 16px; font-size: 1rem; cursor: pointer; background: #00F5FF; color: #000; border: none; border-radius: 4px; font-weight: 600; }
     #results { margin-top: 20px; }
-    .step { background: #f4f4f4; border-left: 4px solid #4CAF50; padding: 10px; margin: 8px 0; }
-    .step h4 { margin: 0 0 4px 0; color: #333; }
-    .step p { margin: 0; color: #555; }
-    #loading { display: none; color: #888; margin-top: 10px; }
+    .agent-block { margin: 12px 0; padding: 16px; border-radius: 8px; border-left: 4px solid #00F5FF; background: #111; }
+    .agent-block h4 { margin: 0 0 8px; color: #00F5FF; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+    .agent-block p { margin: 0; color: #aaa; white-space: pre-wrap; }
+    .step-block { margin: 8px 0 8px 20px; padding: 12px; border-radius: 6px; background: #0a0a0f; border: 1px solid #222; }
+    .step-block h5 { margin: 0 0 6px; color: #fff; font-size: 0.9rem; }
+    .step-block p { margin: 0; color: #888; font-size: 0.9rem; white-space: pre-wrap; }
+    #status { color: #555; font-size: 0.9rem; margin-top: 10px; }
   </style>
 </head>
 <body>
   <h1>🐸 Zibblefrog Agent Orchestration Demo</h1>
-  <p>Enter a goal and watch the planner + executor agents work together!</p>
+  <p style="color:#888">Enter a goal and watch the planner + executor agents work in real-time!</p>
   <input id="goal" type="text" placeholder="e.g. Plan a trip to Paris" />
   <button onclick="runAgent()">Run</button>
-  <div id="loading">⏳ Agents are working...</div>
+  <div id="status"></div>
   <div id="results"></div>
 
   <script>
     const API = 'https://zibblefrog-agent.onrender.com';
+    let currentStepEl = null;
+    let plannerEl = null;
 
-    async function runAgent() {
+    function runAgent() {
       const goal = document.getElementById('goal').value;
       if (!goal) return;
-      document.getElementById('loading').style.display = 'block';
       document.getElementById('results').innerHTML = '';
-      const res = await fetch(`${API}/run?goal=${encodeURIComponent(goal)}`, {method: 'POST'});
-      const data = await res.json();
-      document.getElementById('loading').style.display = 'none';
-      const html = data.steps.map(s => `
-        <div class="step">
-          <h4>📋 ${s.step}</h4>
-          <p>${s.result}</p>
-        </div>`).join('');
-      document.getElementById('results').innerHTML = `<h2>Goal: ${data.goal}</h2>` + html;
+      document.getElementById('status').textContent = '⏳ Connecting to agents...';
+      currentStepEl = null;
+
+      const es = new EventSource(`${API}/stream?goal=${encodeURIComponent(goal)}`);
+
+      es.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        const results = document.getElementById('results');
+
+        if (data.agent === 'planner' && data.status === 'thinking') {
+          plannerEl = document.createElement('div');
+          plannerEl.className = 'agent-block';
+          plannerEl.innerHTML = '<h4>🧠 Planner</h4><p></p>';
+          results.appendChild(plannerEl);
+          document.getElementById('status').textContent = '🧠 Planner is thinking...';
+        }
+        else if (data.agent === 'planner' && data.status === 'streaming') {
+          plannerEl.querySelector('p').textContent += data.content;
+        }
+        else if (data.agent === 'executor' && data.status === 'thinking') {
+          currentStepEl = document.createElement('div');
+          currentStepEl.className = 'step-block';
+          currentStepEl.innerHTML = `<h5>📋 ${data.step}</h5><p></p>`;
+          results.appendChild(currentStepEl);
+          document.getElementById('status').textContent = `⚙️ Executing: ${data.step.substring(0, 50)}...`;
+        }
+        else if (data.agent === 'executor' && data.status === 'streaming') {
+          currentStepEl.querySelector('p').textContent += data.content;
+        }
+        else if (data.agent === 'done') {
+          document.getElementById('status').textContent = '✅ Done!';
+          es.close();
+        }
+      };
+
+      es.onerror = () => {
+        document.getElementById('status').textContent = '❌ Connection error.';
+        es.close();
+      };
     }
   </script>
-<script defer src="/_vercel/insights/script.js"></script>
+  <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
