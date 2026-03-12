@@ -51,6 +51,25 @@ async def analyze_bc_stream(model: str = "gpt-4o-mini"):
     csv_content = pd.DataFrame(rows).to_csv(index=False)
     return StreamingResponse(stream_csv(csv_content, model), media_type="text/event-stream")
 
+
+@app.post("/preview-changes")
+async def preview_changes(updates: list[dict]):
+    import tools.bigcommerce_tool
+    from tools.registry import get
+    from tools.bigcommerce_tool import BCPublishInput
+    tool = get("bigcommerce")
+    result = await tool.execute(BCPublishInput(updates=updates, mode="preview"))
+    return result.model_dump()
+
+@app.post("/publish-changes")
+async def publish_changes(updates: list[dict]):
+    import tools.bigcommerce_tool
+    from tools.registry import get
+    from tools.bigcommerce_tool import BCPublishInput
+    tool = get("bigcommerce")
+    result = await tool.execute(BCPublishInput(updates=updates, mode="publish"))
+    return result.model_dump()
+
 @app.get("/runs/{run_id}")
 def get_run_detail(run_id: str):
     run = get_run(run_id)
