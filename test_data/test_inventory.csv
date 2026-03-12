@@ -1,0 +1,6 @@
+Location ID,Item,Product ID,Variant ID,Type,Weight,Name,SKU,Current Stock,Low Stock,Price,Availability
+1,Product,101,,Belts and Bearings,0,Craftsman 12345 Ball Bearing,CB12345,10,2,9.99,True
+1,Product,102,,Belts and Bearings,0,Sears V-Belt Model 67890,VB67890,5,1,14.99,True
+1,Product,103,,Belts and Bearings,0,Generic Timing Belt TM111,TM111,8,2,19.99,True
+1,Product,104,,Belts and Bearings,0,Craftsman Sealed Bearing STD222,STD222,12,3,11.99,True
+1,Product,105,,Belts and Bearings,0,Roller Bearing Heavy Duty RB333,RB333,6,1,24.99,True
