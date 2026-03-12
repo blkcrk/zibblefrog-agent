@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, Response
 from openai import OpenAI
 from backend.agents.orchestrator import run_pipeline
-from backend.agents.csv_pipeline import process_csv
+from backend.agents.csv_pipeline import process_csv, process_csv_stream
 import json
 
 app = FastAPI(title="Zibblefrog Agent Demo")
@@ -64,3 +64,12 @@ async def analyze_csv(file: UploadFile = File(...), model: str = "gpt-4o-mini"):
     result_csv = process_csv(content.decode(), model)
     return Response(content=result_csv, media_type="text/csv",
                     headers={"Content-Disposition": "attachment; filename=analyzed_inventory.csv"})
+
+@app.post("/analyze-csv-stream")
+async def analyze_csv_stream(file: UploadFile = File(...), model: str = "gpt-4o-mini"):
+    content = await file.read()
+    csv_content = content.decode()
+    def event_stream():
+        for event in process_csv_stream(csv_content, model):
+            yield f"data: {json.dumps(event)}\n\n"
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
