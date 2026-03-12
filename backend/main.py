@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, Response
-from groq import Groq
+from openai import OpenAI
 from backend.agents.orchestrator import run_pipeline
 from backend.agents.csv_pipeline import process_csv
 import json
@@ -10,25 +10,25 @@ import json
 app = FastAPI(title="Zibblefrog Agent Demo")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-client = Groq(api_key=os.environ["GROQ_API_KEY"])
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 @app.get("/")
 def root():
     return {"status": "ok", "message": "Zibblefrog agent is running"}
 
 @app.post("/chat")
-def chat(prompt: str, model: str = "llama-3.3-70b-versatile"):
+def chat(prompt: str, model: str = "gpt-4o-mini"):
     response = client.chat.completions.create(
         model=model, messages=[{"role": "user", "content": prompt}]
     )
     return {"response": response.choices[0].message.content}
 
 @app.post("/run")
-def run(goal: str, model: str = "llama-3.3-70b-versatile"):
+def run(goal: str, model: str = "gpt-4o-mini"):
     return run_pipeline(goal, model)
 
 @app.get("/stream")
-def stream(goal: str, model: str = "llama-3.3-70b-versatile"):
+def stream(goal: str, model: str = "gpt-4o-mini"):
     def event_stream():
         yield f"data: {json.dumps({'agent': 'planner', 'status': 'thinking', 'content': ''})}\n\n"
         planner_prompt = (
@@ -59,7 +59,7 @@ def stream(goal: str, model: str = "llama-3.3-70b-versatile"):
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 @app.post("/analyze-csv")
-async def analyze_csv(file: UploadFile = File(...), model: str = "llama-3.3-70b-versatile"):
+async def analyze_csv(file: UploadFile = File(...), model: str = "gpt-4o-mini"):
     content = await file.read()
     result_csv = process_csv(content.decode(), model)
     return Response(content=result_csv, media_type="text/csv",
