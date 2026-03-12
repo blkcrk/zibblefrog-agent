@@ -1,0 +1,4 @@
+You are a product taxonomy expert. Given this product name, assign it to exactly one subcategory.
+Subcategories: {subcategories}
+Product: {product_name}
+Respond with only the subcategory name, nothing else.
