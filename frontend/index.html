@@ -271,6 +271,11 @@
                 a.href = url; a.download = 'analyzed_inventory.csv';
                 a.click(); URL.revokeObjectURL(url);
               };
+              // Parse CSV for schema injection
+              const lines = resultCSV.trim().split('\\n');
+              const headers = lines[0].split(',');
+              const parsed = lines.slice(1).map(l => Object.fromEntries(l.split(',').map((v,i) => [headers[i], v])));
+              injectProductSchema(parsed);
             }
           }
         }
@@ -343,6 +348,28 @@
         es.close();
       };
     }
+
+    
+      // Inject schema.org Product markup
+      function injectProductSchema(results) {
+        const products = results.map(r => ({
+          "@type": "Product",
+          "name": r.SEO_Name || r.Name,
+          "sku": r.SKU,
+          "description": r.AI_Description || "",
+          "category": r.Suggested_Category,
+          "offers": {
+            "@type": "Offer",
+            "price": r.Price,
+            "priceCurrency": "USD",
+            "availability": r.Availability === "True" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+          }
+        }));
+        const schema = { "@context": "https://schema.org", "@graph": products };
+        let el = document.getElementById('product-schema');
+        if (!el) { el = document.createElement('script'); el.id = 'product-schema'; el.type = 'application/ld+json'; document.head.appendChild(el); }
+        el.textContent = JSON.stringify(schema, null, 2);
+      }
 
     document.getElementById('goal').addEventListener('keydown', e => { if (e.key === 'Enter') runAgent(); });
   </script>
