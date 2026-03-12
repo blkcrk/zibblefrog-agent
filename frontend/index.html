@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>Zibblefrog Agent Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; background: #0a0a0f; color: #f0f0f0; }
+    body { font-family: sans-serif; max-width: 960px; margin: 40px auto; padding: 0 24px; background: #0a0a0f; color: #f0f0f0; }
     h1 { color: #00F5FF; margin-bottom: 8px; }
     h2 { color: #00F5FF; font-size: 1.1rem; margin-bottom: 16px; margin-top: 48px; border-top: 1px solid #1a1a2e; padding-top: 32px; }
     .subtitle { color: #666; margin-bottom: 28px; font-size: 0.95rem; }
@@ -15,9 +16,9 @@
     .btn { padding: 10px 22px; font-size: 1rem; cursor: pointer; background: #00F5FF; color: #000; border: none; border-radius: 6px; font-weight: 700; transition: opacity 0.2s; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-outline { background: transparent; color: #00F5FF; border: 1px solid #00F5FF; }
-    #progress-wrap { margin-top: 20px; background: #1a1a2e; border-radius: 20px; height: 6px; display: none; }
-    #progress-bar { height: 6px; background: #00F5FF; border-radius: 20px; width: 0%; transition: width 0.4s; }
-    #status { margin-top: 12px; font-size: 0.9rem; color: #555; min-height: 20px; display: flex; align-items: center; gap: 8px; }
+    .progress-wrap { margin-top: 16px; background: #1a1a2e; border-radius: 20px; height: 6px; display: none; }
+    .progress-bar { height: 6px; background: #00F5FF; border-radius: 20px; width: 0%; transition: width 0.4s; }
+    .status { margin-top: 10px; font-size: 0.9rem; color: #555; min-height: 20px; }
     .dots span { animation: blink 1.2s infinite; }
     .dots span:nth-child(2) { animation-delay: 0.2s; }
     .dots span:nth-child(3) { animation-delay: 0.4s; }
@@ -47,10 +48,26 @@
     .upload-area { border: 2px dashed #333; border-radius: 10px; padding: 32px; text-align: center; color: #555; cursor: pointer; transition: border-color 0.2s; }
     .upload-area:hover { border-color: #00F5FF; color: #00F5FF; }
     .upload-area input { display: none; }
-    #csv-status { margin-top: 12px; font-size: 0.9rem; color: #555; min-height: 20px; }
-    #csv-progress-wrap { margin-top: 12px; background: #1a1a2e; border-radius: 20px; height: 6px; display: none; }
-    #csv-progress-bar { height: 6px; background: #00F5FF; border-radius: 20px; width: 0%; transition: width 0.4s; }
-    #download-btn { display: none; margin-top: 16px; }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-top: 24px; }
+    .stat-card { background: #0d1117; border: 1px solid #1a1a2e; border-radius: 8px; padding: 16px; text-align: center; }
+    .stat-card h3 { font-size: 2rem; color: #00F5FF; font-weight: 700; }
+    .stat-card p { color: #666; font-size: 0.85rem; margin-top: 4px; }
+
+    /* Chart */
+    .chart-wrap { margin-top: 32px; background: #0d1117; border: 1px solid #1a1a2e; border-radius: 10px; padding: 24px; }
+
+    /* Dialogue log */
+    .dialogue-wrap { margin-top: 32px; }
+    .dialogue-entry { background: #0d1117; border: 1px solid #1a1a2e; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+    .dialogue-entry .card-header h4 { color: #fff; font-size: 0.85rem; text-transform: none; letter-spacing: 0; }
+    .dialogue-body { padding: 12px 16px; font-size: 0.85rem; }
+    .dialogue-body .label { color: #00F5FF; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .dialogue-body .msg { color: #aaa; white-space: pre-wrap; margin-bottom: 12px; background: #111; padding: 8px; border-radius: 4px; }
+    .agent-taxonomy { border-left: 3px solid #f59e0b; }
+    .agent-seo { border-left: 3px solid #8b5cf6; }
+    .agent-kpi { border-left: 3px solid #10b981; }
   </style>
 </head>
 <body>
@@ -61,48 +78,59 @@
     <input id="goal" type="text" placeholder="e.g. Plan a trip to Paris for 7 days" />
     <button id="run-btn" class="btn" onclick="runAgent()">▶ Run</button>
   </div>
-  <div id="progress-wrap"><div id="progress-bar"></div></div>
-  <div id="status"></div>
+  <div id="progress-wrap" class="progress-wrap"><div id="progress-bar" class="progress-bar"></div></div>
+  <div id="status" class="status"></div>
   <div id="results"></div>
 
   <!-- CSV Section -->
   <div class="csv-section">
     <h2>📦 Inventory SEO Analyzer</h2>
-    <p style="color:#666; margin-bottom:20px; font-size:0.95rem">Upload a BigCommerce inventory CSV to get AI-powered taxonomy suggestions, SEO product names, and expected KPI improvements.</p>
+    <p style="color:#666; margin-bottom:20px; font-size:0.95rem">Upload a BigCommerce inventory CSV to get AI-powered taxonomy suggestions, SEO product names, and KPI improvements — streamed live.</p>
     <div class="upload-area" onclick="document.getElementById('csv-input').click()">
       <input type="file" id="csv-input" accept=".csv" onchange="handleFileSelect(event)" />
       <div id="upload-label">📁 Click to upload CSV file</div>
     </div>
-    <div id="csv-progress-wrap"><div id="csv-progress-bar"></div></div>
-    <div id="csv-status"></div>
-    <button id="analyze-btn" class="btn" style="margin-top:16px; display:none" onclick="analyzeCSV()">🤖 Analyze Inventory</button>
-    <button id="download-btn" class="btn btn-outline">⬇ Download Results</button>
+    <div id="csv-progress-wrap" class="progress-wrap"><div id="csv-progress-bar" class="progress-bar"></div></div>
+    <div id="csv-status" class="status"></div>
+    <div style="display:flex; gap:12px; margin-top:16px;">
+      <button id="analyze-btn" class="btn" style="display:none" onclick="analyzeCSV()">🤖 Analyze Inventory</button>
+      <button id="download-btn" class="btn btn-outline" style="display:none">⬇ Download Results</button>
+    </div>
+
+    <!-- Report -->
+    <div id="report" style="display:none">
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="chart-wrap"><canvas id="taxonomy-chart"></canvas></div>
+      <div class="dialogue-wrap">
+        <h2 style="border:none; padding:0; margin-top:32px;">🗣 Agent Dialogue</h2>
+        <div id="dialogue-log"></div>
+      </div>
+    </div>
   </div>
 
   <script>
     const API = 'https://zibblefrog-agent.onrender.com';
     let plannerEl = null, currentStepEl = null, totalSteps = 0, doneSteps = 0;
-    let selectedFile = null, resultBlob = null;
+    let selectedFile = null, resultCSV = null, taxonomyChart = null;
+    let categoryCount = {}, totalProcessed = 0, totalProducts = 0;
 
-    function setStatus(msg, animate=false) {
-      const s = document.getElementById('status');
-      s.innerHTML = animate ? `${msg} <span class="dots"><span>.</span><span>.</span><span>.</span></span>` : msg;
+    function setStatus(id, msg, animate=false) {
+      document.getElementById(id).innerHTML = animate
+        ? `${msg} <span class="dots"><span>.</span><span>.</span><span>.</span></span>` : msg;
     }
 
-    function setProgress(pct) {
-      document.getElementById('progress-wrap').style.display = 'block';
-      document.getElementById('progress-bar').style.width = pct + '%';
+    function setProgress(id, pct) {
+      document.getElementById(id).style.display = 'block';
+      document.getElementById(id.replace('wrap','bar')).style.width = pct + '%';
     }
 
     function makeCopyBtn(getTextFn) {
       const btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.textContent = 'Copy';
+      btn.className = 'copy-btn'; btn.textContent = 'Copy';
       btn.onclick = (e) => {
         e.stopPropagation();
         navigator.clipboard.writeText(getTextFn());
-        btn.textContent = '✓ Copied';
-        btn.classList.add('copied');
+        btn.textContent = '✓ Copied'; btn.classList.add('copied');
         setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
       };
       return btn;
@@ -119,36 +147,119 @@
         document.getElementById('analyze-btn').style.display = 'inline-block';
         document.getElementById('csv-status').textContent = '';
         document.getElementById('download-btn').style.display = 'none';
+        document.getElementById('report').style.display = 'none';
       }
+    }
+
+    function updateChart() {
+      const labels = Object.keys(categoryCount);
+      const data = Object.values(categoryCount);
+      if (taxonomyChart) taxonomyChart.destroy();
+      taxonomyChart = new Chart(document.getElementById('taxonomy-chart'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{ label: 'Products', data, backgroundColor: '#00F5FF55', borderColor: '#00F5FF', borderWidth: 1 }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false }, title: { display: true, text: 'Products per Subcategory', color: '#f0f0f0' } },
+          scales: {
+            x: { ticks: { color: '#aaa' }, grid: { color: '#1a1a2e' } },
+            y: { ticks: { color: '#aaa' }, grid: { color: '#1a1a2e' } }
+          }
+        }
+      });
+    }
+
+    function updateStats() {
+      const grid = document.getElementById('stats-grid');
+      grid.innerHTML = `
+        <div class="stat-card"><h3>${totalProcessed}</h3><p>Products Analyzed</p></div>
+        <div class="stat-card"><h3>${totalProducts}</h3><p>Total Products</p></div>
+        <div class="stat-card"><h3>${Object.keys(categoryCount).length}</h3><p>Subcategories Found</p></div>
+        <div class="stat-card"><h3>${totalProducts > 0 ? Math.round((totalProcessed/totalProducts)*100) : 0}%</h3><p>Complete</p></div>`;
+    }
+
+    function addDialogue(data) {
+      const log = document.getElementById('dialogue-log');
+      const agentIcons = { taxonomy: '🏷️', seo: '🔍', kpi: '📈' };
+      const entry = document.createElement('div');
+      entry.className = `dialogue-entry agent-${data.agent}`;
+      entry.innerHTML = `
+        <div class="card-header">
+          <h4>${agentIcons[data.agent] || '🤖'} ${data.agent.toUpperCase()} Agent — <span style="color:#666;font-weight:400">${data.product.substring(0,50)}${data.product.length>50?'...':''}</span></h4>
+          <span class="collapse-icon">▼</span>
+        </div>
+        <div class="dialogue-body">
+          <div class="label">Input</div>
+          <div class="msg">${data.input}</div>
+          <div class="label">Output</div>
+          <div class="msg">${data.output}</div>
+        </div>`;
+      makeCollapsible(entry);
+      entry.classList.add('collapsed');
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
     }
 
     async function analyzeCSV() {
       if (!selectedFile) return;
       const btn = document.getElementById('analyze-btn');
       btn.disabled = true;
-      document.getElementById('csv-status').innerHTML = 'Analyzing inventory <span class="dots"><span>.</span><span>.</span><span>.</span></span>';
-      document.getElementById('csv-progress-wrap').style.display = 'block';
-      document.getElementById('csv-progress-bar').style.width = '10%';
+      categoryCount = {}; totalProcessed = 0; totalProducts = 0;
+      document.getElementById('dialogue-log').innerHTML = '';
+      document.getElementById('report').style.display = 'block';
+      setStatus('csv-status', 'Connecting to agents', true);
+      setProgress('csv-progress-wrap', 5);
 
       const formData = new FormData();
       formData.append('file', selectedFile);
 
       try {
-        document.getElementById('csv-progress-bar').style.width = '40%';
-        const res = await fetch(`${API}/analyze-csv`, { method: 'POST', body: formData });
-        document.getElementById('csv-progress-bar').style.width = '100%';
-        if (!res.ok) throw new Error('Server error');
-        resultBlob = await res.blob();
-        document.getElementById('csv-status').textContent = '✅ Analysis complete! Download your results below.';
-        document.getElementById('download-btn').style.display = 'inline-block';
-        document.getElementById('download-btn').onclick = () => {
-          const url = URL.createObjectURL(resultBlob);
-          const a = document.createElement('a');
-          a.href = url; a.download = 'analyzed_inventory.csv';
-          a.click(); URL.revokeObjectURL(url);
-        };
+        const res = await fetch(`${API}/analyze-csv-stream`, { method: 'POST', body: formData });
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'dialogue') {
+              if (data.agent === 'taxonomy') {
+                categoryCount[data.output] = (categoryCount[data.output] || 0) + 1;
+                updateChart();
+              }
+              addDialogue(data);
+            } else if (data.type === 'progress') {
+              totalProcessed = data.current;
+              totalProducts = data.total;
+              updateStats();
+              setProgress('csv-progress-wrap', Math.round((data.current / data.total) * 95));
+              setStatus('csv-status', `Processing product ${data.current} of ${data.total}`, true);
+            } else if (data.type === 'complete') {
+              resultCSV = data.csv;
+              setProgress('csv-progress-wrap', 100);
+              setStatus('csv-status', '✅ Analysis complete!');
+              document.getElementById('download-btn').style.display = 'inline-block';
+              document.getElementById('download-btn').onclick = () => {
+                const blob = new Blob([resultCSV], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'analyzed_inventory.csv';
+                a.click(); URL.revokeObjectURL(url);
+              };
+            }
+          }
+        }
       } catch(err) {
-        document.getElementById('csv-status').textContent = '❌ Error analyzing file. Please try again.';
+        setStatus('csv-status', '❌ Error: ' + err.message);
       }
       btn.disabled = false;
     }
@@ -159,8 +270,8 @@
       document.getElementById('results').innerHTML = '';
       document.getElementById('run-btn').disabled = true;
       plannerEl = null; currentStepEl = null; totalSteps = 0; doneSteps = 0;
-      setProgress(5);
-      setStatus('Connecting to agents', true);
+      setProgress('progress-wrap', 5);
+      setStatus('status', 'Connecting to agents', true);
 
       const es = new EventSource(`${API}/stream?goal=${encodeURIComponent(goal)}`);
       es.onmessage = (e) => {
@@ -172,8 +283,8 @@
           plannerEl.innerHTML = `<div class="card-header"><h4>🧠 Planner <span class="badge thinking">thinking</span></h4><span class="collapse-icon">▼</span></div><div class="card-body"></div>`;
           results.appendChild(plannerEl);
           makeCollapsible(plannerEl);
-          setStatus('Planner is thinking', true);
-          setProgress(10);
+          setStatus('status', 'Planner is thinking', true);
+          setProgress('progress-wrap', 10);
         } else if (data.agent === 'planner' && data.status === 'streaming') {
           plannerEl.querySelector('.badge').className = 'badge streaming';
           plannerEl.querySelector('.badge').textContent = 'streaming';
@@ -183,14 +294,14 @@
           plannerEl.querySelector('.badge').textContent = 'done';
           plannerEl.querySelector('.card-header').appendChild(makeCopyBtn(() => plannerEl.querySelector('.card-body').textContent));
           totalSteps = data.steps.length;
-          setProgress(20);
+          setProgress('progress-wrap', 20);
         } else if (data.agent === 'executor' && data.status === 'thinking') {
           currentStepEl = document.createElement('div');
           currentStepEl.className = 'step-card active';
           currentStepEl.innerHTML = `<div class="card-header"><h4>📋 ${data.step} <span class="badge thinking">thinking</span></h4><span class="collapse-icon">▼</span></div><div class="card-body"></div>`;
           results.appendChild(currentStepEl);
           makeCollapsible(currentStepEl);
-          setStatus(`Executing step ${doneSteps + 1} of ${totalSteps}`, true);
+          setStatus('status', `Executing step ${doneSteps + 1} of ${totalSteps}`, true);
         } else if (data.agent === 'executor' && data.status === 'streaming') {
           currentStepEl.querySelector('.badge').className = 'badge streaming';
           currentStepEl.querySelector('.badge').textContent = 'streaming';
@@ -202,16 +313,16 @@
           const body = currentStepEl.querySelector('.card-body');
           currentStepEl.querySelector('.card-header').appendChild(makeCopyBtn(() => body.textContent));
           doneSteps++;
-          setProgress(20 + Math.round((doneSteps / totalSteps) * 80));
+          setProgress('progress-wrap', 20 + Math.round((doneSteps / totalSteps) * 80));
         } else if (data.agent === 'done') {
-          setProgress(100);
-          setStatus('✅ All agents completed!');
+          setProgress('progress-wrap', 100);
+          setStatus('status', '✅ All agents completed!');
           document.getElementById('run-btn').disabled = false;
           es.close();
         }
       };
       es.onerror = () => {
-        setStatus('❌ Connection error. Is the backend running?');
+        setStatus('status', '❌ Connection error.');
         document.getElementById('run-btn').disabled = false;
         es.close();
       };
