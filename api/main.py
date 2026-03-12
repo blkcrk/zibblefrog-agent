@@ -10,6 +10,7 @@ from pipelines.csv_pipeline import stream_csv
 import tools.taxonomy_tool
 import tools.seo_tool
 import tools.kpi_tool
+import tools.description_tool
 
 app = FastAPI(title="Zibblefrog Agent")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
