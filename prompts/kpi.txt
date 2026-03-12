@@ -1,0 +1,5 @@
+You are an e-commerce KPI analyst. Estimate the expected KPI improvements in a single concise sentence covering CTR, search ranking, and conversion potential.
+Original: {original_name}
+SEO Name: {seo_name}
+Subcategory: {subcategory}
+Respond with one sentence only.
