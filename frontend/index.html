@@ -199,8 +199,7 @@
         </div>`;
       makeCollapsible(entry);
       entry.classList.add('collapsed');
-      log.appendChild(entry);
-      log.scrollTop = log.scrollHeight;
+      log.insertBefore(entry, log.firstChild);
     }
 
     async function analyzeCSV() {
@@ -247,6 +246,23 @@
               resultCSV = data.csv;
               setProgress('csv-progress-wrap', 100);
               setStatus('csv-status', '✅ Analysis complete!');
+              // Collapse all dialogue entries and show summary
+              document.querySelectorAll('.dialogue-entry').forEach(e => e.classList.add('collapsed'));
+              const summaryDiv = document.createElement('div');
+              summaryDiv.style = 'margin-top:24px';
+              const rows = Object.entries(categoryCount).map(([k,v]) =>
+                `<tr><td style="padding:8px 12px;color:#f0f0f0">${k}</td><td style="padding:8px 12px;color:#00F5FF;text-align:right">${v}</td></tr>`
+              ).join('');
+              summaryDiv.innerHTML = `
+                <h2 style="border:none;padding:0;margin-bottom:16px">📋 Summary Report</h2>
+                <table style="width:100%;border-collapse:collapse;background:#0d1117;border-radius:8px;overflow:hidden">
+                  <thead><tr style="background:#111">
+                    <th style="padding:10px 12px;text-align:left;color:#00F5FF">Subcategory</th>
+                    <th style="padding:10px 12px;text-align:right;color:#00F5FF">Products</th>
+                  </tr></thead>
+                  <tbody>${rows}</tbody>
+                </table>`;
+              document.getElementById('dialogue-log').insertBefore(summaryDiv, document.getElementById('dialogue-log').firstChild);
               document.getElementById('download-btn').style.display = 'inline-block';
               document.getElementById('download-btn').onclick = () => {
                 const blob = new Blob([resultCSV], { type: 'text/csv' });
