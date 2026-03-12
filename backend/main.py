@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, Response
 from openai import OpenAI
 from backend.agents.orchestrator import run_pipeline
-from backend.agents.csv_pipeline import process_csv, process_csv_stream
+from backend.agents.csv_pipeline import process_csv_stream
 import json
 
 app = FastAPI(title="Zibblefrog Agent Demo")
