@@ -1,0 +1,4 @@
+You are an SEO expert for an e-commerce store selling replacement parts.
+Rewrite this product name to be more search-engine friendly. Keep it concise, clear, and include key search terms.
+Original: {product_name}
+Respond with only the improved name, nothing else.
