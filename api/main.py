@@ -32,6 +32,25 @@ async def analyze_csv_stream(file: UploadFile = File(...), model: str = "gpt-4o-
     content = (await file.read()).decode()
     return StreamingResponse(stream_csv(content, model), media_type="text/event-stream")
 
+
+@app.get("/fetch-bc-products")
+async def fetch_bc_products():
+    from tools.bigcommerce_connector import fetch_products, bc_to_csv_row
+    import pandas as pd
+    products = await fetch_products()
+    rows = [bc_to_csv_row(p) for p in products]
+    csv = pd.DataFrame(rows).to_csv(index=False)
+    return {"count": len(rows), "csv": csv}
+
+@app.get("/analyze-bc-stream")
+async def analyze_bc_stream(model: str = "gpt-4o-mini"):
+    from tools.bigcommerce_connector import fetch_products, bc_to_csv_row
+    import pandas as pd
+    products = await fetch_products()
+    rows = [bc_to_csv_row(p) for p in products]
+    csv_content = pd.DataFrame(rows).to_csv(index=False)
+    return StreamingResponse(stream_csv(csv_content, model), media_type="text/event-stream")
+
 @app.get("/runs/{run_id}")
 def get_run_detail(run_id: str):
     run = get_run(run_id)
