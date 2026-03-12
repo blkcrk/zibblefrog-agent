@@ -7,29 +7,22 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; background: #0a0a0f; color: #f0f0f0; }
     h1 { color: #00F5FF; margin-bottom: 8px; }
+    h2 { color: #00F5FF; font-size: 1.1rem; margin-bottom: 16px; margin-top: 48px; border-top: 1px solid #1a1a2e; padding-top: 32px; }
     .subtitle { color: #666; margin-bottom: 28px; font-size: 0.95rem; }
-
     .input-row { display: flex; gap: 10px; }
-    input { flex: 1; padding: 10px 14px; font-size: 1rem; background: #111; border: 1px solid #333; color: #fff; border-radius: 6px; }
-    input:focus { outline: none; border-color: #00F5FF; }
-    button#run-btn { padding: 10px 22px; font-size: 1rem; cursor: pointer; background: #00F5FF; color: #000; border: none; border-radius: 6px; font-weight: 700; transition: opacity 0.2s; }
-    button#run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    /* Progress bar */
+    input[type=text] { flex: 1; padding: 10px 14px; font-size: 1rem; background: #111; border: 1px solid #333; color: #fff; border-radius: 6px; }
+    input[type=text]:focus { outline: none; border-color: #00F5FF; }
+    .btn { padding: 10px 22px; font-size: 1rem; cursor: pointer; background: #00F5FF; color: #000; border: none; border-radius: 6px; font-weight: 700; transition: opacity 0.2s; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-outline { background: transparent; color: #00F5FF; border: 1px solid #00F5FF; }
     #progress-wrap { margin-top: 20px; background: #1a1a2e; border-radius: 20px; height: 6px; display: none; }
     #progress-bar { height: 6px; background: #00F5FF; border-radius: 20px; width: 0%; transition: width 0.4s; }
-
-    /* Status */
     #status { margin-top: 12px; font-size: 0.9rem; color: #555; min-height: 20px; display: flex; align-items: center; gap: 8px; }
     .dots span { animation: blink 1.2s infinite; }
     .dots span:nth-child(2) { animation-delay: 0.2s; }
     .dots span:nth-child(3) { animation-delay: 0.4s; }
     @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
-
-    /* Results */
     #results { margin-top: 24px; }
-
-    /* Planner card */
     .planner-card { background: #0d1117; border: 1px solid #00F5FF33; border-left: 4px solid #00F5FF; border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
     .card-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; cursor: pointer; user-select: none; }
     .card-header h4 { color: #00F5FF; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
@@ -41,17 +34,23 @@
     .collapse-icon { color: #555; font-size: 0.8rem; transition: transform 0.2s; }
     .collapsed .collapse-icon { transform: rotate(-90deg); }
     .collapsed .card-body { display: none; }
-
-    /* Step cards */
     .step-card { background: #0a0a0f; border: 1px solid #1a1a2e; border-radius: 8px; margin: 8px 0 8px 20px; overflow: hidden; transition: border-color 0.2s; }
     .step-card.active { border-color: #00F5FF55; }
     .step-card .card-header h4 { color: #fff; font-size: 0.85rem; text-transform: none; letter-spacing: 0; }
     .step-card .card-body { color: #888; }
-
-    /* Copy button */
-    .copy-btn { font-size: 0.75rem; padding: 3px 10px; background: #1a1a2e; border: 1px solid #333; color: #aaa; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+    .copy-btn { font-size: 0.75rem; padding: 3px 10px; background: #1a1a2e; border: 1px solid #333; color: #aaa; border-radius: 4px; cursor: pointer; }
     .copy-btn:hover { background: #222; color: #fff; }
     .copy-btn.copied { color: #00ff88; border-color: #00ff88; }
+
+    /* CSV section */
+    .csv-section { margin-top: 48px; border-top: 1px solid #1a1a2e; padding-top: 32px; }
+    .upload-area { border: 2px dashed #333; border-radius: 10px; padding: 32px; text-align: center; color: #555; cursor: pointer; transition: border-color 0.2s; }
+    .upload-area:hover { border-color: #00F5FF; color: #00F5FF; }
+    .upload-area input { display: none; }
+    #csv-status { margin-top: 12px; font-size: 0.9rem; color: #555; min-height: 20px; }
+    #csv-progress-wrap { margin-top: 12px; background: #1a1a2e; border-radius: 20px; height: 6px; display: none; }
+    #csv-progress-bar { height: 6px; background: #00F5FF; border-radius: 20px; width: 0%; transition: width 0.4s; }
+    #download-btn { display: none; margin-top: 16px; }
   </style>
 </head>
 <body>
@@ -60,22 +59,34 @@
 
   <div class="input-row">
     <input id="goal" type="text" placeholder="e.g. Plan a trip to Paris for 7 days" />
-    <button id="run-btn" onclick="runAgent()">▶ Run</button>
+    <button id="run-btn" class="btn" onclick="runAgent()">▶ Run</button>
   </div>
-
   <div id="progress-wrap"><div id="progress-bar"></div></div>
   <div id="status"></div>
   <div id="results"></div>
 
+  <!-- CSV Section -->
+  <div class="csv-section">
+    <h2>📦 Inventory SEO Analyzer</h2>
+    <p style="color:#666; margin-bottom:20px; font-size:0.95rem">Upload a BigCommerce inventory CSV to get AI-powered taxonomy suggestions, SEO product names, and expected KPI improvements.</p>
+    <div class="upload-area" onclick="document.getElementById('csv-input').click()">
+      <input type="file" id="csv-input" accept=".csv" onchange="handleFileSelect(event)" />
+      <div id="upload-label">📁 Click to upload CSV file</div>
+    </div>
+    <div id="csv-progress-wrap"><div id="csv-progress-bar"></div></div>
+    <div id="csv-status"></div>
+    <button id="analyze-btn" class="btn" style="margin-top:16px; display:none" onclick="analyzeCSV()">🤖 Analyze Inventory</button>
+    <button id="download-btn" class="btn btn-outline">⬇ Download Results</button>
+  </div>
+
   <script>
     const API = 'https://zibblefrog-agent.onrender.com';
     let plannerEl = null, currentStepEl = null, totalSteps = 0, doneSteps = 0;
+    let selectedFile = null, resultBlob = null;
 
     function setStatus(msg, animate=false) {
       const s = document.getElementById('status');
-      s.innerHTML = animate
-        ? `${msg} <span class="dots"><span>.</span><span>.</span><span>.</span></span>`
-        : msg;
+      s.innerHTML = animate ? `${msg} <span class="dots"><span>.</span><span>.</span><span>.</span></span>` : msg;
     }
 
     function setProgress(pct) {
@@ -87,7 +98,8 @@
       const btn = document.createElement('button');
       btn.className = 'copy-btn';
       btn.textContent = 'Copy';
-      btn.onclick = () => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
         navigator.clipboard.writeText(getTextFn());
         btn.textContent = '✓ Copied';
         btn.classList.add('copied');
@@ -97,8 +109,48 @@
     }
 
     function makeCollapsible(card) {
-      const header = card.querySelector('.card-header');
-      header.onclick = () => card.classList.toggle('collapsed');
+      card.querySelector('.card-header').onclick = () => card.classList.toggle('collapsed');
+    }
+
+    function handleFileSelect(e) {
+      selectedFile = e.target.files[0];
+      if (selectedFile) {
+        document.getElementById('upload-label').textContent = `✅ ${selectedFile.name}`;
+        document.getElementById('analyze-btn').style.display = 'inline-block';
+        document.getElementById('csv-status').textContent = '';
+        document.getElementById('download-btn').style.display = 'none';
+      }
+    }
+
+    async function analyzeCSV() {
+      if (!selectedFile) return;
+      const btn = document.getElementById('analyze-btn');
+      btn.disabled = true;
+      document.getElementById('csv-status').innerHTML = 'Analyzing inventory <span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+      document.getElementById('csv-progress-wrap').style.display = 'block';
+      document.getElementById('csv-progress-bar').style.width = '10%';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      try {
+        document.getElementById('csv-progress-bar').style.width = '40%';
+        const res = await fetch(`${API}/analyze-csv`, { method: 'POST', body: formData });
+        document.getElementById('csv-progress-bar').style.width = '100%';
+        if (!res.ok) throw new Error('Server error');
+        resultBlob = await res.blob();
+        document.getElementById('csv-status').textContent = '✅ Analysis complete! Download your results below.';
+        document.getElementById('download-btn').style.display = 'inline-block';
+        document.getElementById('download-btn').onclick = () => {
+          const url = URL.createObjectURL(resultBlob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'analyzed_inventory.csv';
+          a.click(); URL.revokeObjectURL(url);
+        };
+      } catch(err) {
+        document.getElementById('csv-status').textContent = '❌ Error analyzing file. Please try again.';
+      }
+      btn.disabled = false;
     }
 
     function runAgent() {
@@ -111,76 +163,53 @@
       setStatus('Connecting to agents', true);
 
       const es = new EventSource(`${API}/stream?goal=${encodeURIComponent(goal)}`);
-
       es.onmessage = (e) => {
         const data = JSON.parse(e.data);
         const results = document.getElementById('results');
-
         if (data.agent === 'planner' && data.status === 'thinking') {
           plannerEl = document.createElement('div');
           plannerEl.className = 'planner-card';
-          plannerEl.innerHTML = `
-            <div class="card-header">
-              <h4>🧠
-
- Planner <span class="badge thinking">thinking</span></h4>
-              <span class="collapse-icon">▼</span>
-            </div>
-            <div class="card-body"></div>`;
+          plannerEl.innerHTML = `<div class="card-header"><h4>🧠 Planner <span class="badge thinking">thinking</span></h4><span class="collapse-icon">▼</span></div><div class="card-body"></div>`;
           results.appendChild(plannerEl);
           makeCollapsible(plannerEl);
           setStatus('Planner is thinking', true);
           setProgress(10);
-        }
-        else if (data.agent === 'planner' && data.status === 'streaming') {
+        } else if (data.agent === 'planner' && data.status === 'streaming') {
           plannerEl.querySelector('.badge').className = 'badge streaming';
           plannerEl.querySelector('.badge').textContent = 'streaming';
           plannerEl.querySelector('.card-body').textContent += data.content;
-        }
-        else if (data.agent === 'planner' && data.status === 'done') {
+        } else if (data.agent === 'planner' && data.status === 'done') {
           plannerEl.querySelector('.badge').className = 'badge done';
           plannerEl.querySelector('.badge').textContent = 'done';
-          const hdr = plannerEl.querySelector('.card-header');
-          hdr.appendChild(makeCopyBtn(() => plannerEl.querySelector('.card-body').textContent));
+          plannerEl.querySelector('.card-header').appendChild(makeCopyBtn(() => plannerEl.querySelector('.card-body').textContent));
           totalSteps = data.steps.length;
           setProgress(20);
-        }
-        else if (data.agent === 'executor' && data.status === 'thinking') {
+        } else if (data.agent === 'executor' && data.status === 'thinking') {
           currentStepEl = document.createElement('div');
           currentStepEl.className = 'step-card active';
-          currentStepEl.innerHTML = `
-            <div class="card-header">
-              <h4>📋 ${data.step} <span class="badge thinking">thinking</span></h4>
-              <span class="collapse-icon">▼</span>
-            </div>
-            <div class="card-body"></div>`;
+          currentStepEl.innerHTML = `<div class="card-header"><h4>📋 ${data.step} <span class="badge thinking">thinking</span></h4><span class="collapse-icon">▼</span></div><div class="card-body"></div>`;
           results.appendChild(currentStepEl);
           makeCollapsible(currentStepEl);
           setStatus(`Executing step ${doneSteps + 1} of ${totalSteps}`, true);
-        }
-        else if (data.agent === 'executor' && data.status === 'streaming') {
+        } else if (data.agent === 'executor' && data.status === 'streaming') {
           currentStepEl.querySelector('.badge').className = 'badge streaming';
           currentStepEl.querySelector('.badge').textContent = 'streaming';
           currentStepEl.querySelector('.card-body').textContent += data.content;
-        }
-        else if (data.agent === 'executor' && data.status === 'done') {
+        } else if (data.agent === 'executor' && data.status === 'done') {
           currentStepEl.classList.remove('active');
           currentStepEl.querySelector('.badge').className = 'badge done';
           currentStepEl.querySelector('.badge').textContent = 'done';
-          const hdr = currentStepEl.querySelector('.card-header');
           const body = currentStepEl.querySelector('.card-body');
-          hdr.appendChild(makeCopyBtn(() => body.textContent));
+          currentStepEl.querySelector('.card-header').appendChild(makeCopyBtn(() => body.textContent));
           doneSteps++;
           setProgress(20 + Math.round((doneSteps / totalSteps) * 80));
-        }
-        else if (data.agent === 'done') {
+        } else if (data.agent === 'done') {
           setProgress(100);
           setStatus('✅ All agents completed!');
           document.getElementById('run-btn').disabled = false;
           es.close();
         }
       };
-
       es.onerror = () => {
         setStatus('❌ Connection error. Is the backend running?');
         document.getElementById('run-btn').disabled = false;
@@ -188,9 +217,7 @@
       };
     }
 
-    document.getElementById('goal').addEventListener('keydown', e => {
-      if (e.key === 'Enter') runAgent();
-    });
+    document.getElementById('goal').addEventListener('keydown', e => { if (e.key === 'Enter') runAgent(); });
   </script>
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
